@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Suivi Activités</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700;800&display=swap');
+
+:root {
+–bg: #0f0f0f;
+–surface: #1a1a1a;
+–surface2: #242424;
+–border: #2e2e2e;
+–accent: #e8ff47;
+–accent2: #47c8ff;
+–accent3: #ff7a47;
+–text: #f0f0f0;
+–muted: #666;
+–radius: 12px;
+}
+
+- { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+background: var(–bg);
+color: var(–text);
+font-family: ‘Syne’, sans-serif;
+min-height: 100vh;
+padding: 16px;
+max-width: 600px;
+margin: 0 auto;
+}
+
+header {
+display: flex;
+align-items: center;
+justify-content: space-between;
+padding: 16px 0 24px;
+border-bottom: 1px solid var(–border);
+margin-bottom: 24px;
+}
+
+.header-title {
+font-size: 1.1rem;
+font-weight: 700;
+letter-spacing: 0.05em;
+text-transform: uppercase;
+color: var(–accent);
+}
+
+.date-badge {
+font-family: ‘DM Mono’, monospace;
+font-size: 0.75rem;
+color: var(–muted);
+background: var(–surface);
+padding: 6px 12px;
+border-radius: 20px;
+border: 1px solid var(–border);
+}
+
+.grid {
+display: grid;
+grid-template-columns: 1fr 1fr;
+gap: 12px;
+margin-bottom: 12px;
+}
+
+.card {
+background: var(–surface);
+border: 1px solid var(–border);
+border-radius: var(–radius);
+padding: 20px;
+transition: border-color 0.2s;
+}
+
+.card:hover { border-color: #444; }
+
+.card-label {
+font-size: 0.7rem;
+font-weight: 600;
+text-transform: uppercase;
+letter-spacing: 0.1em;
+color: var(–muted);
+margin-bottom: 12px;
+}
+
+.counter-value {
+font-family: ‘DM Mono’, monospace;
+font-size: 3.5rem;
+font-weight: 500;
+line-height: 1;
+margin-bottom: 16px;
+transition: transform 0.1s, color 0.1s;
+}
+
+.counter-value.pop {
+transform: scale(1.15);
+color: var(–accent);
+}
+
+.btn {
+width: 100%;
+padding: 14px;
+border: none;
+border-radius: 8px;
+font-family: ‘Syne’, sans-serif;
+font-size: 0.9rem;
+font-weight: 700;
+cursor: pointer;
+transition: all 0.15s;
+text-transform: uppercase;
+letter-spacing: 0.05em;
+}
+
+.btn:active { transform: scale(0.96); }
+
+.btn-visits {
+background: var(–accent);
+color: #0f0f0f;
+}
+.btn-visits:hover { background: #d4eb3a; }
+
+.btn-calls {
+background: var(–accent2);
+color: #0f0f0f;
+}
+.btn-calls:hover { background: #3ab4e8; }
+
+.transfer-group {
+grid-column: 1 / -1;
+background: var(–surface);
+border: 1px solid var(–border);
+border-radius: var(–radius);
+padding: 20px;
+}
+
+.transfer-grid {
+display: grid;
+grid-template-columns: repeat(3, 1fr);
+gap: 8px;
+margin-top: 12px;
+}
+
+.transfer-item {
+text-align: center;
+}
+
+.transfer-count {
+font-family: ‘DM Mono’, monospace;
+font-size: 2rem;
+font-weight: 500;
+line-height: 1;
+margin-bottom: 8px;
+transition: transform 0.1s, color 0.1s;
+}
+
+.transfer-count.pop {
+transform: scale(1.2);
+color: var(–accent3);
+}
+
+.btn-transfer {
+background: var(–surface2);
+color: var(–text);
+border: 1px solid var(–border);
+padding: 10px 8px;
+font-size: 0.65rem;
+border-radius: 8px;
+font-family: ‘Syne’, sans-serif;
+font-weight: 600;
+cursor: pointer;
+transition: all 0.15s;
+text-transform: uppercase;
+letter-spacing: 0.04em;
+width: 100%;
+}
+
+.btn-transfer:hover { background: #333; border-color: #555; }
+.btn-transfer:active { transform: scale(0.95); }
+
+.btn-transfer.instruction { border-top: 2px solid #a855f7; }
+.btn-transfer.evaluation { border-top: 2px solid var(–accent); }
+.btn-transfer.medical { border-top: 2px solid #ef4444; }
+
+.inputs-row {
+display: grid;
+grid-template-columns: 1fr 1fr;
+gap: 12px;
+margin-bottom: 12px;
+}
+
+.input-card {
+background: var(–surface);
+border: 1px solid var(–border);
+border-radius: var(–radius);
+padding: 20px;
+}
+
+.input-card label {
+display: block;
+font-size: 0.7rem;
+font-weight: 600;
+text-transform: uppercase;
+letter-spacing: 0.1em;
+color: var(–muted);
+margin-bottom: 10px;
+}
+
+.input-card input {
+width: 100%;
+background: var(–surface2);
+border: 1px solid var(–border);
+border-radius: 8px;
+color: var(–text);
+font-family: ‘DM Mono’, monospace;
+font-size: 2rem;
+font-weight: 500;
+padding: 8px 12px;
+text-align: center;
+outline: none;
+transition: border-color 0.2s;
+}
+
+.input-card input:focus { border-color: var(–accent); }
+.input-card input::placeholder { color: #333; }
+
+.actions-row {
+display: grid;
+grid-template-columns: 1fr 1fr;
+gap: 12px;
+margin-bottom: 24px;
+}
+
+.btn-export {
+background: #1a2a1a;
+color: #6ee86e;
+border: 1px solid #2a3e2a;
+font-size: 0.8rem;
+}
+.btn-export:hover { background: #1f321f; }
+
+.btn-newday {
+background: #2a1a1a;
+color: #ff7a7a;
+border: 1px solid #3e2a2a;
+font-size: 0.8rem;
+}
+.btn-newday:hover { background: #321f1f; }
+
+/* Historique */
+.section-title {
+font-size: 0.75rem;
+font-weight: 700;
+text-transform: uppercase;
+letter-spacing: 0.12em;
+color: var(–muted);
+margin-bottom: 12px;
+display: flex;
+align-items: center;
+gap: 8px;
+}
+
+.section-title::after {
+content: ‘’;
+flex: 1;
+height: 1px;
+background: var(–border);
+}
+
+.history-export-btn {
+background: transparent;
+color: var(–accent);
+border: 1px solid var(–accent);
+border-radius: 20px;
+padding: 4px 12px;
+font-family: ‘Syne’, sans-serif;
+font-size: 0.65rem;
+font-weight: 700;
+cursor: pointer;
+text-transform: uppercase;
+letter-spacing: 0.08em;
+transition: all 0.15s;
+margin-bottom: 12px;
+display: block;
+margin-left: auto;
+}
+.history-export-btn:hover { background: var(–accent); color: #0f0f0f; }
+
+.history-table-wrap {
+overflow-x: auto;
+border-radius: var(–radius);
+border: 1px solid var(–border);
+}
+
+table {
+width: 100%;
+border-collapse: collapse;
+font-family: ‘DM Mono’, monospace;
+font-size: 0.72rem;
+}
+
+thead tr {
+background: var(–surface2);
+}
+
+th {
+padding: 10px 8px;
+text-align: center;
+font-size: 0.6rem;
+font-family: ‘Syne’, sans-serif;
+text-transform: uppercase;
+letter-spacing: 0.08em;
+color: var(–muted);
+font-weight: 600;
+white-space: nowrap;
+}
+
+th:first-child { text-align: left; padding-left: 12px; }
+
+td {
+padding: 10px 8px;
+text-align: center;
+border-top: 1px solid var(–border);
+color: var(–text);
+}
+
+td:first-child {
+text-align: left;
+padding-left: 12px;
+color: var(–muted);
+font-size: 0.68rem;
+}
+
+tbody tr:hover { background: var(–surface); }
+
+.empty-history {
+text-align: center;
+padding: 40px;
+color: var(–muted);
+font-size: 0.85rem;
+font-style: italic;
+}
+
+.toast {
+position: fixed;
+bottom: 24px;
+left: 50%;
+transform: translateX(-50%) translateY(80px);
+background: var(–accent);
+color: #0f0f0f;
+font-family: ‘Syne’, sans-serif;
+font-weight: 700;
+font-size: 0.85rem;
+padding: 12px 24px;
+border-radius: 30px;
+transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+z-index: 100;
+pointer-events: none;
+white-space: nowrap;
+}
+
+.toast.show { transform: translateX(-50%) translateY(0); }
+
+@media (max-width: 400px) {
+.counter-value { font-size: 2.8rem; }
+.transfer-count { font-size: 1.6rem; }
+.transfer-grid { gap: 6px; }
+.btn-transfer { font-size: 0.58rem; padding: 8px 4px; }
+}
+</style>
+
+</head>
+<body>
+
+<header>
+  <div class="header-title">📋 Suivi Activités</div>
+  <div class="date-badge" id="todayDate"></div>
+</header>
+
+<!-- Compteurs principaux -->
+
+<div class="grid">
+  <!-- Visites -->
+  <div class="card">
+    <div class="card-label">Visites</div>
+    <div class="counter-value" id="visitCount">0</div>
+    <button class="btn btn-visits" onclick="increment('visits', 'visitCount')">+ Visite</button>
+  </div>
+
+  <!-- Appels -->
+
+  <div class="card">
+    <div class="card-label">Appels</div>
+    <div class="counter-value" id="callCount">0</div>
+    <button class="btn btn-calls" onclick="increment('calls', 'callCount')">+ Appel</button>
+  </div>
+
+  <!-- Transferts -->
+
+  <div class="transfer-group">
+    <div class="card-label">Transferts</div>
+    <div class="transfer-grid">
+      <div class="transfer-item">
+        <div class="transfer-count" id="instrCount">0</div>
+        <button class="btn-transfer instruction" onclick="increment('instruction', 'instrCount')">→ Instruction</button>
+      </div>
+      <div class="transfer-item">
+        <div class="transfer-count" id="evalCount">0</div>
+        <button class="btn-transfer evaluation" onclick="increment('evaluation', 'evalCount')">→ Évaluation</button>
+      </div>
+      <div class="transfer-item">
+        <div class="transfer-count" id="medCount">0</div>
+        <button class="btn-transfer medical" onclick="increment('medical', 'medCount')">→ Médical</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Champs texte -->
+
+<div class="inputs-row">
+  <div class="input-card">
+    <label>Mails</label>
+    <input type="number" id="mailsInput" placeholder="0" min="0" oninput="saveToday()">
+  </div>
+  <div class="input-card">
+    <label>Courriers</label>
+    <input type="number" id="courriersInput" placeholder="0" min="0" oninput="saveToday()">
+  </div>
+</div>
+
+<!-- Actions -->
+
+<div class="actions-row">
+  <button class="btn btn-export" onclick="exportToday()">⬇ Exporter Excel</button>
+  <button class="btn btn-newday" onclick="newDay()">↺ Nouveau jour</button>
+</div>
+
+<!-- Historique -->
+
+<div class="section-title">Historique</div>
+<button class="history-export-btn" onclick="exportHistory()">⬇ Télécharger tout</button>
+<div class="history-table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th>Date</th>
+        <th>Vis.</th>
+        <th>App.</th>
+        <th>Instr.</th>
+        <th>Eval.</th>
+        <th>Méd.</th>
+        <th>Mails</th>
+        <th>Courr.</th>
+      </tr>
+    </thead>
+    <tbody id="historyBody"></tbody>
+  </table>
+  <div class="empty-history" id="emptyHistory" style="display:none">Aucun historique pour le moment</div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ─── DB ──────────────────────────────────────────────
+let db;
+const DB_NAME = 'SuiviActivites';
+const STORE_TODAY = 'today';
+const STORE_HISTORY = 'history';
+
+function openDB() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(DB_NAME, 1);
+    req.onupgradeneeded = e => {
+      const d = e.target.result;
+      if (!d.objectStoreNames.contains(STORE_TODAY)) d.createObjectStore(STORE_TODAY);
+      if (!d.objectStoreNames.contains(STORE_HISTORY)) d.createObjectStore(STORE_HISTORY, { keyPath: 'date' });
+    };
+    req.onsuccess = e => { db = e.target.result; resolve(); };
+    req.onerror = () => reject(req.error);
+  });
+}
+
+function dbGet(store, key) {
+  return new Promise((res, rej) => {
+    const tx = db.transaction(store, 'readonly');
+    const req = tx.objectStore(store).get(key);
+    req.onsuccess = () => res(req.result);
+    req.onerror = () => rej(req.error);
+  });
+}
+
+function dbPut(store, value, key) {
+  return new Promise((res, rej) => {
+    const tx = db.transaction(store, 'readwrite');
+    const req = key !== undefined ? tx.objectStore(store).put(value, key) : tx.objectStore(store).put(value);
+    req.onsuccess = () => res();
+    req.onerror = () => rej(req.error);
+  });
+}
+
+function dbGetAll(store) {
+  return new Promise((res, rej) => {
+    const tx = db.transaction(store, 'readonly');
+    const req = tx.objectStore(store).getAll();
+    req.onsuccess = () => res(req.result);
+    req.onerror = () => rej(req.error);
+  });
+}
+
+// ─── STATE ───────────────────────────────────────────
+let state = { visits:0, calls:0, instruction:0, evaluation:0, medical:0, mails:'', courriers:'' };
+
+function getToday() {
+  const d = new Date();
+  return d.toLocaleDateString('fr-FR', { day:'2-digit', month:'2-digit', year:'numeric' });
+}
+
+function getTodayISO() {
+  const d = new Date();
+  return d.toISOString().split('T')[0];
+}
+
+async function loadToday() {
+  const saved = await dbGet(STORE_TODAY, 'current');
+  if (saved) {
+    state = saved;
+    render();
+  }
+}
+
+async function saveToday() {
+  state.mails = document.getElementById('mailsInput').value;
+  state.courriers = document.getElementById('courriersInput').value;
+  await dbPut(STORE_TODAY, state, 'current');
+}
+
+function render() {
+  document.getElementById('visitCount').textContent = state.visits;
+  document.getElementById('callCount').textContent = state.calls;
+  document.getElementById('instrCount').textContent = state.instruction;
+  document.getElementById('evalCount').textContent = state.evaluation;
+  document.getElementById('medCount').textContent = state.medical;
+  document.getElementById('mailsInput').value = state.mails || '';
+  document.getElementById('courriersInput').value = state.courriers || '';
+}
+
+// ─── ACTIONS ─────────────────────────────────────────
+function increment(field, elId) {
+  state[field] = (state[field] || 0) + 1;
+  const el = document.getElementById(elId);
+  el.textContent = state[field];
+  el.classList.add('pop');
+  setTimeout(() => el.classList.remove('pop'), 150);
+  saveToday();
+}
+
+async function newDay() {
+  if (!confirm('Sauvegarder et remettre à zéro ?')) return;
+  state.mails = document.getElementById('mailsInput').value;
+  state.courriers = document.getElementById('courriersInput').value;
+
+  const record = {
+    date: getTodayISO(),
+    dateLabel: getToday(),
+    visits: state.visits,
+    calls: state.calls,
+    instruction: state.instruction,
+    evaluation: state.evaluation,
+    medical: state.medical,
+    mails: state.mails || 0,
+    courriers: state.courriers || 0
+  };
+  await dbPut(STORE_HISTORY, record);
+
+  state = { visits:0, calls:0, instruction:0, evaluation:0, medical:0, mails:'', courriers:'' };
+  await dbPut(STORE_TODAY, state, 'current');
+  render();
+  await loadHistory();
+  showToast('Journée sauvegardée ✓');
+}
+
+// ─── EXPORT ──────────────────────────────────────────
+function buildRow(d) {
+  return [d.dateLabel || d.date, d.visits, d.calls, d.instruction, d.evaluation, d.medical, d.mails||0, d.courriers||0];
+}
+
+function makeWorkbook(rows, title) {
+  const headers = ['Date','Visites','Appels','Transférés Instruction','Transférés Évaluation','Transférés Médical','Mails','Courriers'];
+  const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+  ws['!cols'] = [14,8,8,20,20,18,8,9].map(w => ({ wch: w }));
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, title);
+  return wb;
+}
+
+function exportToday() {
+  const mails = document.getElementById('mailsInput').value;
+  const courriers = document.getElementById('courriersInput').value;
+  const row = buildRow({ dateLabel: getToday(), ...state, mails, courriers });
+  const wb = makeWorkbook([row], 'Aujourd\'hui');
+  XLSX.writeFile(wb, `activites_${getTodayISO()}.xlsx`);
+  showToast('Export téléchargé ✓');
+}
+
+async function exportHistory() {
+  const records = await dbGetAll(STORE_HISTORY);
+  if (!records.length) { showToast('Aucun historique'); return; }
+  records.sort((a, b) => b.date.localeCompare(a.date));
+  const rows = records.map(buildRow);
+  const wb = makeWorkbook(rows, 'Historique');
+  XLSX.writeFile(wb, `historique_activites.xlsx`);
+  showToast('Historique exporté ✓');
+}
+
+// ─── HISTORIQUE ──────────────────────────────────────
+async function loadHistory() {
+  const records = await dbGetAll(STORE_HISTORY);
+  const body = document.getElementById('historyBody');
+  const empty = document.getElementById('emptyHistory');
+  body.innerHTML = '';
+
+  if (!records.length) { empty.style.display = 'block'; return; }
+  empty.style.display = 'none';
+
+  records.sort((a, b) => b.date.localeCompare(a.date));
+  const last30 = records.slice(0, 30);
+
+  last30.forEach(r => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${r.dateLabel || r.date}</td>
+      <td>${r.visits}</td>
+      <td>${r.calls}</td>
+      <td>${r.instruction}</td>
+      <td>${r.evaluation}</td>
+      <td>${r.medical}</td>
+      <td>${r.mails||0}</td>
+      <td>${r.courriers||0}</td>`;
+    body.appendChild(tr);
+  });
+}
+
+// ─── TOAST ───────────────────────────────────────────
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+// ─── INIT ────────────────────────────────────────────
+document.getElementById('todayDate').textContent = getToday();
+
+openDB().then(async () => {
+  await loadToday();
+  await loadHistory();
+});
+</script>
+
+</body>
+</html>
